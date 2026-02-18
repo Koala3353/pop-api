@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Receipt OCR API - Extract transaction details from GCash, PayMaya, and BDO receipt screenshots">
+    <title>Receipt OCR API - GCash, PayMaya, BDO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header .emoji {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 3rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: #764ba2;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            font-size: 1.05rem;
+        }
+
+        .api-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .api-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .api-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .api-card h3 {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-card p {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .feature {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .endpoints {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .endpoint {
+            padding: 1rem;
+            background: white;
+            margin-bottom: 1rem;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .endpoint:last-child {
+            margin-bottom: 0;
+        }
+
+        .endpoint-method {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            color: #764ba2;
+            font-weight: 600;
+        }
+
+        .endpoint-desc {
+            margin-top: 0.5rem;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 2rem 1.5rem;
+            }
+
+            .api-links {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">📱</div>
+            <h1>Receipt OCR API</h1>
+            <p>Extract transaction details from GCash, PayMaya, and BDO receipts</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Welcome</h2>
+                <p>
+                    This API extracts transaction details from receipt screenshots using advanced OCR technology.
+                    Upload a receipt image and get back structured data including transaction ID, amount, time, and confidence score.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>Quick Links</h2>
+                <div class="api-links">
+                    <a href="/docs" class="api-card">
+                        <h3>📖 API Documentation</h3>
+                        <p>Interactive Swagger UI</p>
+                    </a>
+                    <a href="/redoc" class="api-card">
+                        <h3>📚 ReDoc</h3>
+                        <p>Alternative documentation</p>
+                    </a>
+                    <a href="/health" class="api-card">
+                        <h3>✅ Health Check</h3>
+                        <p>API status endpoint</p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Supported Providers</h2>
+                <div class="features">
+                    <div class="feature">
+                        <h3>✅ GCash</h3>
+                        <p>Express Send & Send Money receipts</p>
+                    </div>
+                    <div class="feature">
+                        <h3>✅ PayMaya</h3>
+                        <p>Maya transfer receipts</p>
+                    </div>
+                    <div class="feature">
+                        <h3>✅ BDO Pay</h3>
+                        <p>BDO transaction receipts</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>API Endpoints</h2>
+                <div class="endpoints">
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/parse-receipt</span>
+                        </div>
+                        <div class="endpoint-desc">Upload a single receipt image for OCR processing</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/parse-receipt-url</span>
+                        </div>
+                        <div class="endpoint-desc">Parse a receipt from an image URL</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/parse-receipts</span>
+                        </div>
+                        <div class="endpoint-desc">Batch process multiple receipt images (up to 50)</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/parse-receipts-url</span>
+                        </div>
+                        <div class="endpoint-desc">Batch process receipts from multiple URLs</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/parse-drive-folder</span>
+                        </div>
+                        <div class="endpoint-desc">Process all images in a Google Drive folder</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/verify-receipts</span>
+                        </div>
+                        <div class="endpoint-desc">Verify receipt images against a transaction history PDF</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">POST</span>
+                            <span class="endpoint-path">/verify-parsed</span>
+                        </div>
+                        <div class="endpoint-desc">Verify pre-parsed receipts against transaction history</div>
+                    </div>
+                    <div class="endpoint">
+                        <div>
+                            <span class="endpoint-method">GET</span>
+                            <span class="endpoint-path">/health</span>
+                        </div>
+                        <div class="endpoint-desc">Health check endpoint</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Features</h2>
+                <div class="features">
+                    <div class="feature">
+                        <h3>🎯 High Accuracy</h3>
+                        <p>Advanced OCR with confidence scoring</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚡ Fast Processing</h3>
+                        <p>Quick extraction of key details</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📦 Batch Support</h3>
+                        <p>Process up to 50 receipts at once</p>
+                    </div>
+                    <div class="feature">
+                        <h3>☁️ Google Drive</h3>
+                        <p>Scan entire folders automatically</p>
+                    </div>
+                    <div class="feature">
+                        <h3>✔️ Verification</h3>
+                        <p>Match receipts against PDF history</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🔒 Secure</h3>
+                        <p>No data storage, instant processing</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Getting Started</h2>
+                <p>
+                    To use this API, send a POST request to one of the endpoints with your receipt image.
+                    Visit the <a href="/docs" style="color: #667eea; text-decoration: none; font-weight: 600;">interactive documentation</a> 
+                    to try it out directly in your browser.
+                </p>
+                <p>
+                    The API returns structured JSON with transaction details including reference numbers, amounts, timestamps, 
+                    and OCR confidence scores. Perfect for automating receipt verification and record-keeping.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Built with FastAPI and PaddleOCR | Deployed on Vercel</p>
+            <p>
+                <a href="https://github.com/Koala3353/pop-api" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Vercel Speed Insights -->
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>

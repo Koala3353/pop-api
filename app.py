@@ -10,6 +10,8 @@ import httpx
 from urllib.parse import urlparse
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 from pydantic import BaseModel
 from ocr_engine import extract_text_with_confidence
 from parsers import parse_receipt
@@ -562,3 +564,24 @@ async def verify_parsed_endpoint(
 async def health():
     """Health check endpoint."""
     return {"status": "ok"}
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """
+    Serve the landing page with API documentation and Vercel Speed Insights.
+    """
+    html_file = Path(__file__).parent / "templates" / "index.html"
+    if html_file.exists():
+        return html_file.read_text(encoding="utf-8")
+    else:
+        # Fallback if template file is not found
+        return """
+        <html>
+            <head><title>Receipt OCR API</title></head>
+            <body>
+                <h1>Receipt OCR API</h1>
+                <p>Welcome to the Receipt OCR API. Visit <a href="/docs">/docs</a> for API documentation.</p>
+            </body>
+        </html>
+        """
