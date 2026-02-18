@@ -1,12 +1,12 @@
 """
 Google Drive integration — list and download image files from a Drive folder.
+Uses lightweight httpx + google-auth instead of the heavy google-api-python-client.
 Requires a Google Cloud service account JSON key file.
 """
 
-import io
+import httpx
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+from google.auth.transport.requests import Request
 
 # Image MIME types we can process
 IMAGE_MIMES = {
@@ -17,14 +17,17 @@ IMAGE_MIMES = {
 }
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files"
 
 
-def _get_service(credentials_path: str):
-    """Build a Google Drive API service from a service account key file."""
+def _get_access_token(credentials_path: str) -> str:
+    """Get a valid access token from the service account key file."""
     creds = service_account.Credentials.from_service_account_file(
         credentials_path, scopes=SCOPES
     )
-    return build("drive", "v3", credentials=creds)
+    # Refresh to get the initial token
+    creds.refresh(Request())
+    return creds.token
 
 
 def list_image_files(folder_id: str, credentials_path: str) -> list[dict]:
@@ -32,7 +35,8 @@ def list_image_files(folder_id: str, credentials_path: str) -> list[dict]:
     List all image files in a Google Drive folder.
     Returns a list of dicts with 'id', 'name', and 'mimeType'.
     """
-    service = _get_service(credentials_path)
+    token = _get_access_token(credentials_path)
+    headers = {"Authorization": f"Bearer {token}"}
 
     # Query for image files in the specified folder
     mime_query = " or ".join(f"mimeType='{m}'" for m in IMAGE_MIMES)
@@ -41,36 +45,37 @@ def list_image_files(folder_id: str, credentials_path: str) -> list[dict]:
     results = []
     page_token = None
 
-    while True:
-        response = (
-            service.files()
-            .list(
-                q=query,
-                fields="nextPageToken, files(id, name, mimeType)",
-                pageSize=100,
-                pageToken=page_token,
-            )
-            .execute()
-        )
+    with httpx.Client(timeout=30.0) as client:
+        while True:
+            params = {
+                "q": query,
+                "fields": "nextPageToken, files(id, name, mimeType)",
+                "pageSize": 100,
+            }
+            if page_token:
+                params["pageToken"] = page_token
 
-        results.extend(response.get("files", []))
-        page_token = response.get("nextPageToken")
-        if not page_token:
-            break
+            resp = client.get(DRIVE_API_URL, headers=headers, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+            results.extend(data.get("files", []))
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                break
 
     return results
 
 
 def download_file(file_id: str, credentials_path: str) -> bytes:
     """Download a file from Google Drive and return its bytes."""
-    service = _get_service(credentials_path)
-    request = service.files().get_media(fileId=file_id)
+    token = _get_access_token(credentials_path)
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    url = f"{DRIVE_API_URL}/{file_id}"
+    params = {"alt": "media"}
 
-    buffer = io.BytesIO()
-    downloader = MediaIoBaseDownload(buffer, request)
-
-    done = False
-    while not done:
-        _, done = downloader.next_chunk()
-
-    return buffer.getvalue()
+    with httpx.Client(timeout=60.0, follow_redirects=True) as client:
+        resp = client.get(url, headers=headers, params=params)
+        resp.raise_for_status()
+        return resp.content

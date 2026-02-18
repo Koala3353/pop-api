@@ -281,7 +281,7 @@ async def parse_drive_folder(request: DriveRequest):
     except ImportError:
         raise HTTPException(
             status_code=500,
-            detail="Google Drive dependencies not installed. Run: pip install google-api-python-client google-auth",
+            detail="Google Drive dependencies not installed. Run: pip install google-auth httpx",
         )
 
     # List images in folder
