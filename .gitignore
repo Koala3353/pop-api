@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+
+# PaddleOCR model cache
+~/.paddleocr/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials (never commit)
+service_account.json
+*.json.key
+
+# Test data
+/tmp/
