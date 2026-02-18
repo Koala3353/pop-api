@@ -1,19 +1,16 @@
 """
-OCR Engine — image preprocessing and text extraction using PaddleOCR.
+OCR Engine — image preprocessing and text extraction using RapidOCR.
+Lightweight ONNX Runtime-based engine, Vercel-compatible (~100MB vs PaddleOCR's ~300MB).
 """
 
 import io
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 import cv2
-from paddleocr import PaddleOCR
+from rapidocr_onnxruntime import RapidOCR
 
-# Initialize PaddleOCR once (expensive to create)
-_ocr = PaddleOCR(
-    use_angle_cls=True,   # detect rotated text
-    lang="en",            # English language
-    show_log=False,       # suppress verbose logging
-)
+# Initialize RapidOCR once
+_ocr = RapidOCR()
 
 
 def preprocess_image(image_bytes: bytes) -> np.ndarray:
@@ -24,7 +21,7 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     # Load image from bytes
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-    # Resize if too small (PaddleOCR works better with reasonable resolution)
+    # Resize if too small (OCR works better with reasonable resolution)
     w, h = image.size
     if max(w, h) < 800:
         scale = 800 / max(w, h)
@@ -46,24 +43,25 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
 
 def extract_text_with_confidence(image_bytes: bytes) -> tuple[list[str], float]:
     """
-    Run PaddleOCR on the image and return:
+    Run RapidOCR on the image and return:
       - all detected text lines sorted top-to-bottom
       - average OCR confidence score (0.0–1.0)
     """
     img = preprocess_image(image_bytes)
 
-    # Run OCR — returns list of [boxes, (text, confidence)]
-    results = _ocr.ocr(img, cls=True)
+    # RapidOCR returns: (result, elapse)
+    # result is list of [box, text, confidence] or None
+    result, _ = _ocr(img)
 
-    if not results or not results[0]:
+    if not result:
         return [], 0.0
 
     # Collect (y_position, text, confidence) so we can sort top-to-bottom
     lines: list[tuple[float, str, float]] = []
-    for line in results[0]:
-        box = line[0]        # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
-        text = line[1][0]    # recognized text
-        confidence = line[1][1]
+    for item in result:
+        box = item[0]        # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+        text = item[1]       # recognized text
+        confidence = item[2] # confidence score
 
         # Skip very low-confidence detections
         if confidence < 0.5:
@@ -84,9 +82,8 @@ def extract_text_with_confidence(image_bytes: bytes) -> tuple[list[str], float]:
 
 def extract_text(image_bytes: bytes) -> list[str]:
     """
-    Run PaddleOCR on the image and return all detected text lines,
+    Run RapidOCR on the image and return all detected text lines,
     sorted top-to-bottom by their vertical position.
     """
     texts, _ = extract_text_with_confidence(image_bytes)
     return texts
-

@@ -43,6 +43,10 @@ def _normalize_spaces(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     # Fix OCR-merged year+time like "202610:59PM" → "2026 10:59PM"
     text = re.sub(r"(\d{4})(\d{1,2}:\d{2})", r"\1 \2", text)
+    # Fix OCR-merged month+day like "Feb5," → "Feb 5,"
+    text = re.sub(r"([A-Za-z]{3,})(\d{1,2})", r"\1 \2", text)
+    # Fix OCR-merged day+year like "5,2026" → "5, 2026"
+    text = re.sub(r"(\d{1,2},)(\d{4})", r"\1 \2", text)
     return text
 
 
@@ -225,11 +229,11 @@ def _extract_amount(lines: list[str]) -> str | None:
 # ---------------------------------------------------------------------------
 
 # GCash format: "Jan 28, 2026 7:58 PM" or "Feb 5, 2026 7:23 PM"
-# Also handles OCR-merged format: "Feb 12, 202610:59PM" (no space before time)
+# Also handles OCR-merged formats from RapidOCR: "Feb5,20267:23PM"
 _DATETIME_PATTERN = re.compile(
     r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*"  # month
-    r"\s+\d{1,2},?\s+\d{4}"                                      # day, year
-    r"\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)",                    # time (\s* allows merged)
+    r"\s*\d{1,2},?\s*\d{4}"                                      # day, year (\s* for merged)
+    r"\s*\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)",                    # time (\s* for merged)
     re.IGNORECASE,
 )
 
