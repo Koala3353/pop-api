@@ -1,0 +1,11 @@
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.git/
+.gitignore
+.DS_Store
+*.md
+test_*.py
+service_account.json
+vercel.json
